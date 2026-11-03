@@ -14,12 +14,14 @@ jobs:
         run: chmod +x ./gradlew
       - name: build
         run: ./gradlew build --stacktrace
-      - name: debug class locations
+      - name: debug permission api
         if: failure()
         run: |
-          find ~/.gradle .gradle -name "*.jar" 2>/dev/null | grep -i minecraft | grep -iv sources | head -20; J=$(find ~/.gradle .gradle -name "*.jar" 2>/dev/null | grep -i "minecraft" | grep -iv sources | xargs ls -S 2>/dev/null | head -1)
+          J=$(find ~/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-merged -name "*.jar" | grep -v sources | head -1)
           echo "JAR=$J"
-          unzip -l "$J" | awk '{print $4}' | grep -E "/(Villager|VillagerData|FireworkRocketEntity|ItemEntity|Evoker|Vindicator|ItemLore|Fireworks|FireworkExplosion|Identifier|Relative|BedBlock|Heightmap|PotionContents|ServerBossEvent|ClickEvent|HoverEvent|BlockStateProperties|CommandSourceStack|PermissionSet|Permissions|MobEffects|Attributes|EntitySpawnReason)\.class$" || true
+          javap -cp "$J" net.minecraft.commands.CommandSourceStack | grep -i -E "perm|level" || true
+          javap -cp "$J" net.minecraft.commands.Commands | grep -i -E "perm|level" || true
+          unzip -l "$J" | awk '{print $4}' | grep -i "permission" | head -30 || true
       - name: upload mod jar
         uses: actions/upload-artifact@v4
         with:
