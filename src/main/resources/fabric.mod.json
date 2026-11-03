@@ -1,0 +1,20 @@
+{
+	"schemaVersion": 1,
+	"id": "communism",
+	"version": "${version}",
+	"name": "Мод про Коммунизм",
+	"description": "Абсурдный кооперативный мод: Генсек Усач, Пятилетка, указы партии каждые 10 минут, законы, трудодни, Красная площадь, хрущёвки и финальная битва с Мистером Капиталом.",
+	"authors": ["Народ"],
+	"license": "MIT",
+	"icon": "assets/communism/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["com.communism.CommunismMod"]
+	},
+	"depends": {
+		"fabricloader": ">=0.17.0",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
