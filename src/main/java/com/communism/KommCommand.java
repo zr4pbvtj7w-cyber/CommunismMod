@@ -58,7 +58,7 @@ public final class KommCommand {
 	}
 
 	private static LiteralArgumentBuilder<CommandSourceStack> admin() {
-		LiteralArgumentBuilder<CommandSourceStack> a = Commands.literal("admin").requires(src -> src.hasPermission(2));
+		LiteralArgumentBuilder<CommandSourceStack> a = Commands.literal("admin").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS));
 		a.then(Commands.literal("ukaz")
 				.executes(c -> {
 					Decrees.runRandom(c.getSource().getServer());
