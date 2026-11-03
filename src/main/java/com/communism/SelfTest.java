@@ -18,7 +18,8 @@ final class SelfTest {
 		boolean ok = true;
 		try {
 			ServerLevel l = s.overworld();
-			int y = l.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, 0, 0);
+			int y = Math.max(l.getSeaLevel() + 1, Math.min(200, l.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, 0, 0)));
+			CommunismMod.LOG.info("SELFTEST plaza y = {}", y);
 			Events.buildPlazaAt(s, 0, y, 0);
 			int npcs = 0;
 			for (Entity e : l.getAllEntities()) if (e.getTags().contains(Npcs.TAG)) npcs++;

@@ -40,7 +40,9 @@ public final class Structures {
 		}
 
 		void raw(int x, int y, int z, BlockState s) {
-			l.setBlock(new BlockPos(x, y, z), s, 2);
+			BlockPos p = new BlockPos(x, y, z);
+			// блоки с содержимым (сундуки, спавнеры) убираем «по-честному», иначе игра ругается в лог
+			l.setBlock(p, s, l.getBlockEntity(p) != null ? 3 : 2);
 		}
 
 		void fill(int x1, int y1, int z1, int x2, int y2, int z2, BlockState s) {
