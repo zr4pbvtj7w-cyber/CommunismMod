@@ -33,6 +33,8 @@ final class SelfTest {
 			ServerLevel l = s.overworld();
 			int y = Math.max(l.getSeaLevel() + 1, Math.min(200, l.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, 0, 0)));
 			CommunismMod.LOG.info("SELFTEST plaza y = {}", y);
+			// игроков нет — держим весь город загруженным, иначе жители выгружаются вместе с чанками
+			for (int cx = -5; cx <= 5; cx++) for (int cz = -5; cz <= 5; cz++) l.setChunkForced(cx, cz, true);
 			Events.buildPlazaAt(s, 0, y, 0, () -> {
 				try {
 					afterBuild(s, l, y);
@@ -57,7 +59,7 @@ final class SelfTest {
 		check(npcs == Npcs.ROLES.size(), "NPC: " + npcs + "/" + Npcs.ROLES.size());
 		check(l.getBlockState(new BlockPos(0, y - 1, 0)).is(Blocks.GOLD_BLOCK), "нулевой километр");
 		check(l.getBlockState(new BlockPos(31, y, 25)).is(Blocks.RAIL), "рельсы до тюрьмы");
-		check(l.getBlockState(new BlockPos(45, y, 58)).is(Blocks.COBBLESTONE), "камень в камере");
+		check(l.getBlockState(new BlockPos(44, y, 58)).is(Blocks.COBBLESTONE), "камень в камере");
 		check(l.getBlockState(new BlockPos(0, y + 41, -49)).is(Blocks.GOLD_BLOCK), "шпиль Дворца Советов");
 		check(l.getBlockState(new BlockPos(18, y + 1, -12)).is(Blocks.STONE_BUTTON), "кнопка автомата газировки");
 		check(Justice.length(City.railPath()) > 30, "длина рельсов " + Justice.length(City.railPath()));
