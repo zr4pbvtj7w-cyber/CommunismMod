@@ -14,6 +14,11 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import net.minecraft.world.level.block.state.properties.AttachFace;
+import net.minecraft.world.level.block.state.properties.RailShape;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Готовые постройки. Всё строится кодом относительно центра Красной площади (cx, cy, cz),
@@ -113,22 +118,61 @@ public final class Structures {
 	}
 
 	// ======================================================================
-	public static void buildPlaza(ServerLevel l, int cx, int cy, int cz) {
+	/** Строит весь город по частям (по шагу за тик), затем вызывает done. */
+	public static void buildCity(ServerLevel l, int cx, int cy, int cz, Runnable done) {
 		B b = new B(l);
-		int R = 38;
-		// --- выравнивание территории
+		List<Runnable> steps = new ArrayList<>();
+		int R = City.R + 2;
+		for (int x0 = cx - R; x0 <= cx + R; x0 += 6) {
+			final int from = x0, to = Math.min(cx + R, x0 + 5);
+			steps.add(() -> terrain(b, from, to, cz - R, cz + R, cy));
+		}
+		steps.add(() -> plaza(b, cx, cy, cz));
+		steps.add(() -> kremlin(b, cx, cy, cz));
+		steps.add(() -> mausoleum(b, cx, cy, cz));
+		steps.add(() -> statue(b, cx, cy, cz));
+		steps.add(() -> khrushchevka(b, cx + 24, cy, cz - 12));
+		steps.add(() -> khrushchevka(b, cx + 42, cy, cz - 40));
+		steps.add(() -> kolkhoz(b, cx, cy, cz));
+		steps.add(() -> warehouse(b, cx, cy, cz));
+		steps.add(() -> factory(b, cx, cy, cz));
+		steps.add(() -> kosmodrom(b, cx, cy, cz));
+		steps.add(() -> sibir(b, cx, cy, cz));
+		steps.add(() -> palace(b, cx, cy, cz));
+		steps.add(() -> station(b, cx, cy, cz));
+		steps.add(() -> pillorySquare(b, cx, cy, cz));
+		steps.add(() -> prison(b, cx, cy, cz));
+		steps.add(() -> bank(b, cx, cy, cz));
+		steps.add(() -> kiosk(b, cx, cy, cz));
+		steps.add(() -> gastronom(b, cx, cy, cz));
+		steps.add(() -> farm(b, cx, cy, cz));
+		steps.add(() -> greenhouse(b, cx, cy, cz));
+		steps.add(() -> southSquare(b, cx, cy, cz));
+		steps.add(() -> stela(b, cx, cy, cz));
+		steps.add(() -> street(b, cx, cy, cz));
+		steps.add(done);
+		for (int i = 0; i < steps.size(); i++) Scheduler.later(1 + i, steps.get(i));
+	}
+
+	/** Синхронная версия (для автотеста). */
+	public static void buildCityNow(ServerLevel l, int cx, int cy, int cz) {
+		buildCity(l, cx, cy, cz, () -> { });
+	}
+
+	private static void terrain(B b, int x1, int x2, int z1, int z2, int cy) {
 		BlockState dirt = Blocks.DIRT.defaultBlockState();
 		BlockState grass = Blocks.GRASS_BLOCK.defaultBlockState();
 		BlockState air = Blocks.AIR.defaultBlockState();
-		for (int x = cx - R; x <= cx + R; x++) {
-			for (int z = cz - R; z <= cz + R; z++) {
+		for (int x = x1; x <= x2; x++) {
+			for (int z = z1; z <= z2; z++) {
 				for (int y = cy - 6; y <= cy - 2; y++) b.raw(x, y, z, dirt);
 				b.raw(x, cy - 1, z, grass);
-				for (int y = cy; y <= cy + 45; y++) b.raw(x, y, z, air);
+				for (int y = cy; y <= cy + 50; y++) b.raw(x, y, z, air);
 			}
 		}
+	}
 
-		// --- брусчатка
+	private static void plaza(B b, int cx, int cy, int cz) {
 		for (int x = cx - 21; x <= cx + 21; x++) {
 			for (int z = cz - 21; z <= cz + 21; z++) {
 				int dx = x - cx, dz = z - cz;
@@ -141,26 +185,14 @@ public final class Structures {
 		}
 		b.set(cx, cy - 1, cz, Blocks.GOLD_BLOCK); // нулевой километр
 		for (int z = cz - 20; z <= cz - 4; z++) b.set(cx, cy, z, Blocks.RED_CARPET);
-		// дорожки к постройкам
 		for (int x = cx - 23; x <= cx - 22; x++) b.set(x, cy - 1, cz, Blocks.DIRT_PATH);
 		for (int x = cx + 22; x <= cx + 23; x++) b.set(x, cy - 1, cz, Blocks.STONE_BRICKS);
 		for (int z = cz + 22; z <= cz + 24; z++) {
 			b.set(cx - 24, cy - 1, z, Blocks.STONE_BRICKS);
 			b.set(cx + 14, cy - 1, z, Blocks.STONE_BRICKS);
 		}
-		// фонари
-		int[][] lamps = {{-19, -19}, {19, -19}, {-19, 19}, {19, 19}, {0, 19}, {-19, 0}, {19, 0}, {-6, -6}, {6, -6}, {-6, 6}, {6, 6}};
+		int[][] lamps = {{-19, -19}, {19, -19}, {-19, 19}, {19, 19}, {0, 19}, {-19, 0}, {19, 3}, {-6, -6}, {6, -6}, {-6, 6}, {6, 6}};
 		for (int[] p : lamps) b.lamp(cx + p[0], cy, cz + p[1], 3);
-
-		kremlin(b, cx, cy, cz);
-		mausoleum(b, cx, cy, cz);
-		statue(b, cx, cy, cz);
-		khrushchevka(b, cx + 24, cy, cz - 12);
-		kolkhoz(b, cx, cy, cz);
-		warehouse(b, cx, cy, cz);
-		factory(b, cx, cy, cz);
-		kosmodrom(b, cx, cy, cz);
-		sibir(b, cx, cy, cz);
 	}
 
 	// ----------------------------------------------------------------------
@@ -550,26 +582,356 @@ public final class Structures {
 		b.fill(x + 2, y, z + 3, x + 4, y, z + 4, Blocks.RED_CARPET);
 	}
 
-	/** Отдельная постройка по имени (для админ-команды). */
-	public static boolean buildNamed(ServerLevel l, String name, BlockPos p) {
-		B b = new B(l);
-		int x = p.getX(), y = p.getY(), z = p.getZ();
-		switch (name) {
-			case "hrushevka" -> khrushchevka(b, x, y, z);
-			case "kvartira" -> miniHouse(l, p);
-			case "statuya" -> statue(b, x, y, z - 11);
-			case "raketa" -> kosmodrom(b, x - 32, y, z + 33);
-			case "sibir" -> sibir(b, x - SIBIR_DX, y, z - SIBIR_DZ);
-			case "mavzoley" -> mausoleum(b, x + 11, y, z + 20);
-			case "zavod" -> factory(b, x - 15, y, z - 29);
-			case "kolhoz" -> kolkhoz(b, x + 30, y, z);
-			case "sklad" -> warehouse(b, x + 25, y, z - 28);
-			default -> {
-				return false;
-			}
-		}
-		return true;
+	// ======================================================================
+	// Версия 2.0: новые постройки
+	// ======================================================================
+
+	/** Пиксельный шрифт 3×5. */
+	private static final java.util.Map<Character, String[]> FONT = new java.util.HashMap<>();
+
+	static {
+		FONT.put('С', new String[]{"###", "#..", "#..", "#..", "###"});
+		FONT.put('Л', new String[]{".##", "#.#", "#.#", "#.#", "#.#"});
+		FONT.put('А', new String[]{"###", "#.#", "###", "#.#", "#.#"});
+		FONT.put('В', new String[]{"##.", "#.#", "##.", "#.#", "##."});
+		FONT.put('Т', new String[]{"###", ".#.", ".#.", ".#.", ".#."});
+		FONT.put('Р', new String[]{"###", "#.#", "###", "#..", "#.."});
+		FONT.put('У', new String[]{"#.#", "#.#", "###", "..#", "###"});
+		FONT.put('Д', new String[]{".#.", "#.#", "#.#", "###", "#.#"});
 	}
 
-	public static final String[] NAMES = {"hrushevka", "kvartira", "statuya", "raketa", "sibir", "mavzoley", "zavod", "kolhoz", "sklad"};
+	/** Надпись на плоскости z, читается с севера (зритель смотрит на юг: буквы идут с востока на запад). */
+	private static void text(B b, String txt, int xStart, int yTop, int z, Block ink) {
+		for (int i = 0; i < txt.length(); i++) {
+			String[] g = FONT.get(txt.charAt(i));
+			if (g == null) continue;
+			int cx = xStart - i * 4;
+			for (int r = 0; r < 5; r++)
+				for (int c = 0; c < 3; c++)
+					if (g[r].charAt(c) == '#') b.set(cx - c, yTop - r, z, ink);
+		}
+	}
+
+	/** Дворец Советов — резиденция Великого Вождя. */
+	private static void palace(B b, int cx, int cy, int cz) {
+		int z0 = cz - 62, z1 = cz - 36;
+		b.fill(cx - 15, cy - 1, z0, cx + 15, cy - 1, cz - 33, Blocks.POLISHED_GRANITE);
+		for (int z = cz - 33; z <= cz - 29; z++) b.fill(cx - 1, cy - 1, z, cx + 1, cy - 1, z, Blocks.STONE_BRICKS);
+		// 1 ярус — тронный зал
+		b.walls(cx - 14, cy, z0, cx + 14, cy + 9, z1, Blocks.WHITE_CONCRETE);
+		b.walls(cx - 14, cy + 9, z0, cx + 14, cy + 9, z1, Blocks.RED_CONCRETE);
+		b.fill(cx - 13, cy + 10, z0 + 1, cx + 13, cy + 10, z1 - 1, Blocks.QUARTZ_BLOCK);
+		b.fill(cx - 14, cy + 10, z0, cx + 14, cy + 10, z0, Blocks.RED_CONCRETE);
+		for (int x = cx - 12; x <= cx + 12; x += 4) {
+			b.fill(x, cy + 3, z1, x, cy + 7, z1, Blocks.GLASS);
+			b.fill(x, cy + 3, z0, x, cy + 7, z0, Blocks.GLASS);
+		}
+		for (int z = z0 + 3; z < z1; z += 4) {
+			b.fill(cx - 14, cy + 3, z, cx - 14, cy + 7, z, Blocks.GLASS);
+			b.fill(cx + 14, cy + 3, z, cx + 14, cy + 7, z, Blocks.GLASS);
+		}
+		b.air(cx - 2, cy, z1, cx + 2, cy + 4, z1);
+		// колоннада
+		for (int x = cx - 13; x <= cx + 13; x += 3) b.fill(x, cy, cz - 34, x, cy + 8, cz - 34, Blocks.QUARTZ_PILLAR);
+		b.fill(cx - 14, cy + 9, cz - 35, cx + 14, cy + 9, cz - 34, Blocks.QUARTZ_BLOCK);
+		b.fill(cx - 14, cy + 10, cz - 35, cx + 14, cy + 10, cz - 34, Blocks.RED_CONCRETE);
+		// зал
+		b.fill(cx - 13, cy - 1, z0 + 1, cx + 13, cy - 1, z1 - 1, Blocks.POLISHED_DIORITE);
+		for (int z = z0 + 5; z < z1; z++) b.fill(cx - 1, cy, z, cx + 1, cy, z, Blocks.RED_CARPET);
+		b.fill(cx - 3, cy, cz - 58, cx + 3, cy, cz - 54, Blocks.RED_CONCRETE);
+		b.fill(cx - 3, cy, cz - 54, cx + 3, cy, cz - 54, Blocks.GOLD_BLOCK);
+		b.fill(cx - 1, cy + 1, cz - 58, cx + 1, cy + 3, cz - 58, Blocks.GOLD_BLOCK);
+		b.set(cx, cy + 1, cz - 57, Blocks.GOLD_BLOCK);
+		b.fill(cx - 5, cy + 1, z0 + 1, cx + 5, cy + 8, z0 + 1, Blocks.RED_WOOL);
+		b.star(cx, cy + 6, z0 + 2);
+		for (int z = z0 + 4; z < z1 - 2; z += 5) {
+			b.set(cx - 8, cy + 9, z, Blocks.GLOWSTONE);
+			b.set(cx + 8, cy + 9, z, Blocks.GLOWSTONE);
+			b.facing(cx - 12, cy, z, Blocks.LECTERN, Direction.EAST);
+			b.facing(cx + 12, cy, z, Blocks.LECTERN, Direction.WEST);
+			b.set(cx - 13, cy, z, Blocks.RED_BANNER);
+			b.set(cx + 13, cy, z, Blocks.RED_BANNER);
+		}
+		// верхние ярусы («сталинская высотка»)
+		b.walls(cx - 10, cy + 11, cz - 58, cx + 10, cy + 20, cz - 40, Blocks.WHITE_CONCRETE);
+		b.fill(cx - 10, cy + 21, cz - 58, cx + 10, cy + 21, cz - 40, Blocks.RED_CONCRETE);
+		b.walls(cx - 6, cy + 22, cz - 54, cx + 6, cy + 31, cz - 44, Blocks.WHITE_CONCRETE);
+		b.fill(cx - 6, cy + 32, cz - 54, cx + 6, cy + 32, cz - 44, Blocks.RED_CONCRETE);
+		for (int y = cy + 13; y <= cy + 30; y += 3) {
+			for (int x = cx - 8; x <= cx + 8; x += 4) {
+				if (y <= cy + 19) {
+					b.set(x, y, cz - 40, Blocks.LIGHT_BLUE_STAINED_GLASS);
+					b.set(x, y, cz - 58, Blocks.LIGHT_BLUE_STAINED_GLASS);
+				} else if (Math.abs(x - cx) <= 4) {
+					b.set(x, y, cz - 44, Blocks.LIGHT_BLUE_STAINED_GLASS);
+					b.set(x, y, cz - 54, Blocks.LIGHT_BLUE_STAINED_GLASS);
+				}
+			}
+		}
+		b.walls(cx - 2, cy + 33, cz - 51, cx + 2, cy + 40, cz - 47, Blocks.WHITE_CONCRETE);
+		b.fill(cx - 1, cy + 41, cz - 50, cx + 1, cy + 43, cz - 48, Blocks.GOLD_BLOCK);
+		b.fill(cx, cy + 44, cz - 49, cx, cy + 45, cz - 49, Blocks.GOLD_BLOCK);
+		b.star(cx, cy + 47, cz - 49);
+		for (int sx : new int[]{-1, 1}) {
+			int fx = cx + sx * 13;
+			b.fill(fx, cy + 11, cz - 35, fx, cy + 16, cz - 35, Blocks.DARK_OAK_FENCE);
+			b.fill(fx + (sx > 0 ? -3 : 1), cy + 14, cz - 35, fx + (sx > 0 ? -1 : 3), cy + 16, cz - 35, Blocks.RED_WOOL);
+		}
+	}
+
+	/** Отделение милиции и рельсы «Чёрного воронка» до тюрьмы. */
+	private static void station(B b, int cx, int cy, int cz) {
+		int x0 = cx + 26, x1 = cx + 36, z0 = cz + 16, z1 = cz + 24;
+		b.fill(x0, cy - 1, z0, x1, cy - 1, z1, Blocks.SMOOTH_STONE);
+		b.walls(x0, cy, z0, x1, cy + 5, z1, Blocks.LIGHT_BLUE_CONCRETE);
+		b.walls(x0, cy + 4, z0, x1, cy + 4, z1, Blocks.WHITE_CONCRETE);
+		b.fill(x0, cy + 6, z0, x1, cy + 6, z1, Blocks.LIGHT_GRAY_CONCRETE);
+		b.air(cx + 30, cy, z0, cx + 31, cy + 2, z0);
+		b.air(cx + 31, cy, z1, cx + 31, cy + 2, z1);
+		for (int x = x0 + 2; x < x1; x += 3) b.fill(x, cy + 2, z0, x, cy + 3, z0, Blocks.GLASS_PANE);
+		// «обезьянник»
+		b.walls(cx + 33, cy, cz + 17, cx + 35, cy + 2, cz + 20, Blocks.IRON_BARS);
+		b.fill(cx + 28, cy, cz + 18, cx + 29, cy, cz + 18, Blocks.SPRUCE_PLANKS);
+		b.facing(cx + 28, cy + 1, cz + 18, Blocks.LECTERN, Direction.NORTH);
+		b.set(cx + 31, cy + 5, cz + 20, Blocks.GLOWSTONE);
+		// мигалка
+		b.set(cx + 31, cy + 7, cz + 16, Blocks.BLUE_STAINED_GLASS);
+		b.set(cx + 30, cy + 7, cz + 16, Blocks.RED_STAINED_GLASS);
+		b.set(cx + 31, cy + 6, cz + 16, Blocks.GLOWSTONE);
+		// рельсы
+		for (int z = cz + 22; z <= cz + 31; z++) rail(b, cx + 31, cy, z, RailShape.NORTH_SOUTH);
+		rail(b, cx + 31, cy, cz + 32, RailShape.NORTH_EAST);
+		for (int x = cx + 32; x <= cx + 49; x++) rail(b, x, cy, cz + 32, RailShape.EAST_WEST);
+		rail(b, cx + 50, cy, cz + 32, RailShape.SOUTH_WEST);
+		for (int z = cz + 33; z <= cz + 41; z++) rail(b, cx + 50, cy, z, RailShape.NORTH_SOUTH);
+		for (int x = cx + 34; x <= cx + 48; x += 7) b.lamp(x, cy, cz + 31, 3);
+	}
+
+	private static void rail(B b, int x, int y, int z, RailShape shape) {
+		b.set(x, y - 1, z, Blocks.STONE_BRICKS);
+		b.l.setBlock(new BlockPos(x, y, z), Blocks.RAIL.defaultBlockState().setValue(BlockStateProperties.RAIL_SHAPE, shape), 2);
+	}
+
+	/** Площадь позора у рельсов. */
+	private static void pillorySquare(B b, int cx, int cy, int cz) {
+		b.fill(cx + 34, cy - 1, cz + 34, cx + 46, cy - 1, cz + 40, Blocks.POLISHED_ANDESITE);
+		b.fill(cx + 39, cy, cz + 36, cx + 41, cy, cz + 38, Blocks.POLISHED_BLACKSTONE);
+		b.fill(cx + 39, cy + 1, cz + 38, cx + 39, cy + 3, cz + 38, Blocks.DARK_OAK_FENCE);
+		b.fill(cx + 41, cy + 1, cz + 38, cx + 41, cy + 3, cz + 38, Blocks.DARK_OAK_FENCE);
+		b.fill(cx + 39, cy + 3, cz + 38, cx + 41, cy + 3, cz + 38, Blocks.DARK_OAK_PLANKS);
+		b.fill(cx + 37, cy + 1, cz + 40, cx + 43, cy + 4, cz + 40, Blocks.RED_WOOL);
+		b.fill(cx + 38, cy + 2, cz + 40, cx + 42, cy + 3, cz + 40, Blocks.BLACK_WOOL);
+		b.set(cx + 40, cy - 1, cz + 33, Blocks.STONE_BRICKS);
+		b.lamp(cx + 35, cy, cz + 35, 3);
+		b.lamp(cx + 45, cy, cz + 35, 3);
+	}
+
+	/** Тюрьма «Светлый путь». */
+	private static void prison(B b, int cx, int cy, int cz) {
+		int x0 = cx + 42, x1 = cx + 62, z0 = cz + 42, z1 = cz + 62;
+		b.fill(x0, cy - 1, z0, x1, cy - 1, z1, Blocks.GRAVEL);
+		b.fill(x0, cy - 2, z0, x1, cy - 2, z1, Blocks.STONE);
+		b.walls(x0, cy, z0, x1, cy + 6, z1, Blocks.STONE_BRICKS);
+		b.walls(x0, cy + 7, z0, x1, cy + 7, z1, Blocks.IRON_BARS);
+		b.air(cx + 49, cy, z0, cx + 51, cy + 3, z0);
+		b.fill(cx + 49, cy - 1, z0, cx + 51, cy - 1, z0 + 4, Blocks.STONE_BRICKS);
+		for (int k = 0; k < 4; k++) {
+			int a = cx + 43 + 4 * k;
+			b.fill(a, cy - 1, cz + 55, a + 4, cy + 3, cz + 59, Blocks.STONE_BRICKS);
+			b.air(a + 1, cy, cz + 56, a + 3, cy + 2, cz + 58);
+			b.fill(a + 1, cy, cz + 55, a + 3, cy + 2, cz + 55, Blocks.IRON_BARS);
+			b.set(a + 1, cy, cz + 58, Blocks.COBBLESTONE);
+			b.set(a + 3, cy, cz + 58, Blocks.COBBLESTONE);
+			b.set(a + 3, cy + 1, cz + 58, Blocks.COBBLESTONE);
+			b.set(a + 1, cy, cz + 56, Blocks.HAY_BLOCK);
+			b.set(a + 2, cy + 3, cz + 57, Blocks.GLOWSTONE);
+		}
+		// вышка
+		b.fill(cx + 58, cy, cz + 43, cx + 61, cy + 9, cz + 46, Blocks.STONE_BRICKS);
+		b.fill(cx + 57, cy + 10, cz + 42, cx + 62, cy + 10, cz + 47, Blocks.SPRUCE_PLANKS);
+		b.walls(cx + 57, cy + 11, cz + 42, cx + 62, cy + 11, cz + 47, Blocks.SPRUCE_FENCE);
+		b.set(cx + 59, cy + 12, cz + 44, Blocks.LANTERN);
+		for (int x = cx + 45; x <= cx + 57; x += 6) b.lamp(x, cy, cz + 48, 3);
+	}
+
+	/** МФО «Серп и Процент». */
+	private static void bank(B b, int cx, int cy, int cz) {
+		int x0 = cx + 40, x1 = cx + 52, z0 = cz - 8, z1 = cz + 4;
+		b.fill(x0, cy - 1, z0, x1, cy - 1, z1, Blocks.POLISHED_DIORITE);
+		b.walls(x0, cy, z0, x1, cy + 6, z1, Blocks.QUARTZ_BLOCK);
+		b.fill(x0, cy + 1, z0 + 1, x0, cy + 4, z1 - 1, Blocks.LIGHT_BLUE_STAINED_GLASS);
+		b.air(x0, cy, cz - 2, x0, cy + 2, cz - 1);
+		b.fill(x0, cy + 7, z0, x1, cy + 7, z1, Blocks.GOLD_BLOCK);
+		b.fill(x0 + 1, cy + 8, z0 + 1, x1 - 1, cy + 8, z1 - 1, Blocks.QUARTZ_BLOCK);
+		b.fill(cx + 46, cy, z0 + 1, cx + 46, cy, z1 - 1, Blocks.SMOOTH_QUARTZ);
+		b.air(cx + 46, cy, cz - 2, cx + 46, cy, cz - 1);
+		b.fill(cx + 50, cy, z0 + 1, cx + 51, cy + 2, z0 + 2, Blocks.IRON_BLOCK);
+		b.set(cx + 51, cy, z1 - 1, Blocks.GOLD_BLOCK);
+		b.set(cx + 51, cy + 1, z1 - 1, Blocks.GOLD_BLOCK);
+		b.set(cx + 46, cy + 6, cz - 2, Blocks.GLOWSTONE);
+		b.set(cx + 43, cy + 6, cz - 2, Blocks.GLOWSTONE);
+		b.lamp(x0 - 2, cy, cz - 4, 3);
+	}
+
+	/** Киоск «Госудача» (апгрейдер). */
+	private static void kiosk(B b, int cx, int cy, int cz) {
+		int x0 = cx + 40, x1 = cx + 46, z0 = cz + 6, z1 = cz + 11;
+		b.fill(x0, cy - 1, z0, x1, cy - 1, z1, Blocks.PURPLE_CONCRETE);
+		b.walls(x0, cy, z0, x1, cy + 4, z1, Blocks.PURPLE_CONCRETE);
+		b.fill(x0, cy + 5, z0, x1, cy + 5, z1, Blocks.MAGENTA_STAINED_GLASS);
+		b.air(x0, cy, z0 + 1, x0, cy + 2, z1 - 1);
+		Block[] wheel = {Blocks.RED_WOOL, Blocks.YELLOW_WOOL, Blocks.LIME_WOOL, Blocks.LIGHT_BLUE_WOOL};
+		for (int y = 0; y < 3; y++) for (int z = 0; z < 3; z++) b.set(x1, cy + 1 + y, z0 + 1 + z, wheel[(y + z) % 4]);
+		b.set(x1, cy + 2, z0 + 2, Blocks.GOLD_BLOCK);
+		b.set(x0 + 3, cy + 4, z0 + 2, Blocks.GLOWSTONE);
+		b.set(x0 + 3, cy + 4, z1 - 2, Blocks.SEA_LANTERN);
+		b.fill(x0 - 1, cy + 4, z0, x0 - 1, cy + 4, z1, Blocks.MAGENTA_STAINED_GLASS);
+	}
+
+	/** Гастроном «Продукты» с очередью. */
+	private static void gastronom(B b, int cx, int cy, int cz) {
+		int x0 = cx - 62, x1 = cx - 46, z0 = cz - 26, z1 = cz - 12;
+		b.fill(x0, cy - 1, z0, x1, cy - 1, z1, Blocks.SMOOTH_STONE);
+		b.walls(x0, cy, z0, x1, cy + 5, z1, Blocks.WHITE_CONCRETE);
+		b.walls(x0, cy + 5, z0, x1, cy + 5, z1, Blocks.BLUE_CONCRETE);
+		b.fill(x0, cy + 6, z0, x1, cy + 6, z1, Blocks.LIGHT_GRAY_CONCRETE);
+		b.fill(x1, cy + 1, z0 + 1, x1, cy + 3, cz - 21, Blocks.GLASS);
+		b.fill(x1, cy + 1, cz - 16, x1, cy + 3, z1 - 1, Blocks.GLASS);
+		b.air(x1, cy, cz - 19, x1, cy + 2, cz - 18);
+		b.fill(x1 + 1, cy + 4, cz - 22, x1 + 1, cy + 6, cz - 15, Blocks.RED_CONCRETE);
+		// прилавок и пустые полки
+		b.fill(cx - 51, cy, z0 + 2, cx - 51, cy, z1 - 2, Blocks.SMOOTH_STONE_SLAB);
+		for (int z = z0 + 1; z < z1; z += 2) {
+			b.set(x0 + 1, cy, z, Blocks.BARREL);
+			b.set(x0 + 1, cy + 1, z, Blocks.BARREL);
+		}
+		b.set(cx - 54, cy + 5, cz - 19, Blocks.GLOWSTONE);
+		b.set(cx - 58, cy + 5, cz - 19, Blocks.GLOWSTONE);
+		for (int x = cx - 45; x <= cx - 22; x++) b.set(x, cy - 1, cz - 19, Blocks.DIRT_PATH);
+	}
+
+	/** Ферма с коровами. */
+	private static void farm(B b, int cx, int cy, int cz) {
+		int x0 = cx - 62, x1 = cx - 46, z0 = cz + 8, z1 = cz + 24;
+		for (int x = x0; x <= x1; x++) {
+			b.set(x, cy, z0, Blocks.OAK_FENCE);
+			b.set(x, cy, z1, Blocks.OAK_FENCE);
+		}
+		for (int z = z0; z <= z1; z++) {
+			b.set(x0, cy, z, Blocks.OAK_FENCE);
+			b.set(x1, cy, z, Blocks.OAK_FENCE);
+		}
+		b.facing(x1, cy, cz + 16, Blocks.OAK_FENCE_GATE, Direction.EAST);
+		b.walls(x0 + 1, cy, z0 + 1, x0 + 6, cy + 3, z0 + 5, Blocks.SPRUCE_PLANKS);
+		b.air(x0 + 6, cy, z0 + 3, x0 + 6, cy + 1, z0 + 3);
+		b.fill(x0 + 1, cy + 4, z0 + 1, x0 + 6, cy + 4, z0 + 5, Blocks.DARK_OAK_PLANKS);
+		b.fill(x0 + 2, cy, z0 + 2, x0 + 3, cy + 1, z0 + 2, Blocks.HAY_BLOCK);
+		b.fill(cx - 52, cy, z1 - 2, cx - 49, cy, z1 - 2, Blocks.WATER_CAULDRON);
+		b.lamp(x1 + 1, cy, cz + 14, 3);
+		for (int z = cz - 10; z <= cz + 40; z++) b.set(cx - 44, cy - 1, z, Blocks.DIRT_PATH);
+	}
+
+	/** Теплица академика. */
+	private static void greenhouse(B b, int cx, int cy, int cz) {
+		int x0 = cx - 60, x1 = cx - 48, z0 = cz + 30, z1 = cz + 42;
+		b.walls(x0, cy, z0, x1, cy + 4, z1, Blocks.GLASS);
+		b.fill(x0, cy + 5, z0, x1, cy + 5, z1, Blocks.GLASS);
+		b.air(x1, cy, cz + 36, x1, cy + 1, cz + 36);
+		BlockState farmland = Blocks.FARMLAND.defaultBlockState().setValue(BlockStateProperties.MOISTURE, 7);
+		for (int x = x0 + 1; x <= x0 + 8; x++) {
+			for (int z = z0 + 1; z < z1; z++) {
+				if (z == cz + 36) {
+					b.set(x, cy - 1, z, Blocks.WATER);
+					continue;
+				}
+				b.set(x, cy - 1, z, farmland);
+				Block crop = (x % 3 == 0) ? Blocks.WHEAT : (x % 3 == 1) ? Blocks.CARROTS : Blocks.POTATOES;
+				b.set(x, cy, z, crop.defaultBlockState().setValue(BlockStateProperties.AGE_7, 4 + (x + z) % 4));
+			}
+		}
+		b.set(x1 - 1, cy, z0 + 1, Blocks.BREWING_STAND);
+		b.set(x1 - 1, cy, z1 - 1, Blocks.CAULDRON);
+		b.set(x1 - 2, cy, z1 - 1, Blocks.POTTED_CACTUS);
+		// памятник кукурузе
+		int mx = cx - 40, mz = cz + 48;
+		b.fill(mx - 2, cy, mz - 2, mx + 2, cy + 1, mz + 2, Blocks.POLISHED_GRANITE);
+		b.fill(mx - 1, cy + 2, mz - 1, mx + 1, cy + 12, mz + 1, Blocks.YELLOW_CONCRETE);
+		for (int y = cy + 3; y <= cy + 11; y += 2) {
+			b.set(mx - 1, y, mz - 1, Blocks.GOLD_BLOCK);
+			b.set(mx + 1, y, mz + 1, Blocks.GOLD_BLOCK);
+		}
+		b.set(mx, cy + 13, mz, Blocks.YELLOW_CONCRETE);
+		for (int y = cy + 2; y <= cy + 7; y++) {
+			b.set(mx - 2, y, mz, Blocks.GREEN_CONCRETE);
+			b.set(mx + 2, y, mz, Blocks.GREEN_CONCRETE);
+			b.set(mx, y, mz - 2, Blocks.GREEN_CONCRETE);
+		}
+		b.set(mx - 3, cy + 8, mz, Blocks.GREEN_CONCRETE);
+		b.set(mx + 3, cy + 8, mz, Blocks.GREEN_CONCRETE);
+		b.set(mx, cy + 8, mz - 3, Blocks.GREEN_CONCRETE);
+		b.set(mx, cy + 14, mz, Blocks.HAY_BLOCK);
+	}
+
+	/** Южный проспект и статуя «Рабочий и Колхозница» (с гигантскими киркой и мотыгой). */
+	private static void southSquare(B b, int cx, int cy, int cz) {
+		for (int z = cz + 22; z <= cz + 34; z++) b.fill(cx - 2, cy - 1, z, cx + 2, cy - 1, z, Blocks.STONE_BRICKS);
+		for (int x = cx - 12; x <= cx + 12; x++)
+			for (int z = cz + 35; z <= cz + 50; z++) b.set(x, cy - 1, z, ((x + z) & 1) == 0 ? Blocks.STONE_BRICKS : Blocks.POLISHED_ANDESITE);
+		b.fill(cx - 6, cy, cz + 38, cx + 6, cy + 2, cz + 44, Blocks.POLISHED_GRANITE);
+		int y = cy + 3, z = cz + 41;
+		Block steel = Blocks.IRON_BLOCK;
+		for (int sx : new int[]{-2, 2}) {
+			int x = cx + sx;
+			b.fill(x - 1, y, z, x - 1, y + 3, z, steel);
+			b.fill(x + 1, y, z, x + 1, y + 3, z, steel);
+			b.fill(x - 1, y + 4, z, x + 1, y + 8, z, steel);
+			b.fill(x - 1, y + 9, z, x + 1, y + 11, z, steel);
+		}
+		// руки вверх, в руках инструменты
+		b.fill(cx - 4, y + 8, z, cx - 4, y + 13, z, steel);
+		b.fill(cx + 4, y + 8, z, cx + 4, y + 13, z, steel);
+		b.fill(cx - 4, y + 14, z, cx - 4, y + 18, z, Blocks.DARK_OAK_LOG);
+		b.fill(cx - 7, y + 18, z, cx - 1, y + 18, z, Blocks.IRON_BLOCK);
+		b.fill(cx + 4, y + 14, z, cx + 4, y + 18, z, Blocks.DARK_OAK_LOG);
+		b.fill(cx + 4, y + 18, z, cx + 7, y + 18, z, Blocks.IRON_BLOCK);
+		b.set(cx + 7, y + 17, z, Blocks.IRON_BLOCK);
+		b.fill(cx - 3, y + 7, z, cx + 3, y + 7, z, Blocks.RED_CONCRETE);
+		for (int[] p : new int[][]{{-11, 36}, {11, 36}, {-11, 49}, {11, 49}}) b.lamp(cx + p[0], cy, cz + p[1], 3);
+	}
+
+	/** Стела «СЛАВА ТРУДУ». */
+	private static void stela(B b, int cx, int cy, int cz) {
+		b.fill(cx - 23, cy, cz + 52, cx + 22, cy + 7, cz + 53, Blocks.RED_CONCRETE);
+		b.fill(cx - 23, cy + 8, cz + 52, cx + 22, cy + 8, cz + 53, Blocks.GOLD_BLOCK);
+		text(b, "СЛАВА ТРУДУ", cx + 20, cy + 6, cz + 52, Blocks.GOLD_BLOCK);
+	}
+
+	/** Улица: дорога на восток, автомат с газировкой, телефонная будка, лавочка. */
+	private static void street(B b, int cx, int cy, int cz) {
+		for (int x = cx + 22; x <= cx + 62; x++) b.fill(x, cy - 1, cz + 13, x, cy - 1, cz + 15, Blocks.STONE_BRICKS);
+		for (int x = cx + 38; x <= cx + 62; x += 8) b.lamp(x, cy, cz + 12, 3);
+		// автомат газированной воды
+		b.set(cx + 19, cy, cz - 12, Blocks.RED_CONCRETE);
+		b.set(cx + 19, cy + 1, cz - 12, Blocks.LIGHT_BLUE_STAINED_GLASS);
+		b.set(cx + 19, cy + 2, cz - 12, Blocks.RED_CONCRETE);
+		button(b, cx + 18, cy + 1, cz - 12);
+		// телефонная будка
+		b.fill(cx + 17, cy, cz - 8, cx + 19, cy + 2, cz - 6, Blocks.RED_CONCRETE);
+		b.air(cx + 18, cy, cz - 7, cx + 18, cy + 2, cz - 7);
+		b.air(cx + 17, cy, cz - 7, cx + 17, cy + 1, cz - 7);
+		b.set(cx + 18, cy + 2, cz - 8, Blocks.GLASS);
+		b.set(cx + 18, cy + 2, cz - 6, Blocks.GLASS);
+		b.fill(cx + 17, cy + 3, cz - 8, cx + 19, cy + 3, cz - 6, Blocks.RED_CONCRETE);
+		button(b, cx + 18, cy + 1, cz - 7);
+		// лавочка у подъезда
+		BlockState stair = Blocks.OAK_STAIRS.defaultBlockState().setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.EAST);
+		b.set(cx + 22, cy, cz - 5, stair);
+		b.set(cx + 22, cy, cz - 4, stair);
+	}
+
+	private static void button(B b, int x, int y, int z) {
+		b.l.setBlock(new BlockPos(x, y, z), Blocks.STONE_BUTTON.defaultBlockState()
+				.setValue(BlockStateProperties.ATTACH_FACE, AttachFace.WALL)
+				.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.WEST), 3);
+	}
 }

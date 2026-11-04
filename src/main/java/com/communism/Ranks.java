@@ -34,8 +34,7 @@ public final class Ranks {
 		int before = rank(p);
 		Data.add(p, Data.trud, amount);
 		Data.add(p, Data.stazh, amount);
-		Msg.actionbar(p, Msg.t("+" + amount + " трудодней", ChatFormatting.GOLD, ChatFormatting.BOLD)
-				.append(Msg.t(reason == null ? "" : " — " + reason, ChatFormatting.YELLOW)));
+		Plaque.show(p, Plaque.Kind.MONEY, "+" + amount + " трудодней" + (reason == null ? "" : " — " + reason), 4);
 		int after = rank(p);
 		if (after > before) rankUp(p, after);
 	}
@@ -51,11 +50,7 @@ public final class Ranks {
 
 	private static void rankUp(ServerPlayer p, int r) {
 		updateTeam(p);
-		Msg.broadcast(CommunismMod.server, Msg.party()
-				.append(Msg.t(p.getName().getString(), ChatFormatting.WHITE, ChatFormatting.BOLD))
-				.append(Msg.t(" повышен до звания ", ChatFormatting.GOLD))
-				.append(Msg.t(NAMES[r], COLORS[r], ChatFormatting.BOLD))
-				.append(Msg.t("! Ура, товарищи!", ChatFormatting.GOLD)));
+		Plaque.all(CommunismMod.server, Plaque.Kind.GOOD, p.getName().getString() + " повышен до звания «" + NAMES[r] + "»! Ура, товарищи!", 8);
 		Msg.title(p, Msg.t("Новое звание!", ChatFormatting.GOLD, ChatFormatting.BOLD), Msg.t(NAMES[r], COLORS[r]));
 		Msg.sound(p, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
 		Msg.fireworksAround(p, 3);
@@ -68,18 +63,20 @@ public final class Ranks {
 			case 5 -> { Msg.give(p, Goods.marshalBaton(l)); Msg.give(p, Goods.wings()); }
 			default -> { }
 		}
-		Msg.info(p, "Подарок от Партии за новое звание уже в инвентаре!");
+		Plaque.show(p, Plaque.Kind.GOOD, "Подарок от Партии за новое звание уже в инвентаре!", 6);
 	}
 
 	public static void updateTeam(ServerPlayer p) {
 		int r = rank(p);
 		Scoreboard sb = CommunismMod.server.getScoreboard();
-		String tn = "cm_rank" + r;
+		boolean lead = Leader.isLeader(p);
+		String tn = lead ? "cm_gensek" : "cm_rank" + r;
 		PlayerTeam t = sb.getPlayerTeam(tn);
 		if (t == null) {
 			t = sb.addPlayerTeam(tn);
-			t.setPlayerPrefix(Component.literal("[" + NAMES[r] + "] ").withStyle(COLORS[r]));
-			t.setColor(COLORS[r]);
+			t.setPlayerPrefix(lead ? Component.literal("[☭ ГЕНСЕК] ").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD)
+					: Component.literal("[" + NAMES[r] + "] ").withStyle(COLORS[r]));
+			t.setColor(lead ? ChatFormatting.RED : COLORS[r]);
 		}
 		sb.addPlayerToTeam(p.getScoreboardName(), t);
 	}

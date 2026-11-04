@@ -140,7 +140,7 @@ public final class Boss {
 				for (int i = 0; i < 8; i++) {
 					Msg.drop(l, boss.getX() + CommunismMod.RNG.nextInt(9) - 4, boss.getY() + 3, boss.getZ() + CommunismMod.RNG.nextInt(9) - 4, new ItemStack(Items.GOLD_NUGGET, 1 + CommunismMod.RNG.nextInt(3)));
 				}
-				Msg.sayAll(s, Npcs.DICTATOR, "Не брать! Это проверка на сознательность! (Хотя Закон о буржуйском металле всё равно всё конфискует)");
+				Msg.sayAll(s, Npcs.DICTATOR, "Не брать! Это проверка на сознательность!");
 			}
 			default -> {
 				Msg.sayAll(s, NAME, "Ухожу в офшор!");

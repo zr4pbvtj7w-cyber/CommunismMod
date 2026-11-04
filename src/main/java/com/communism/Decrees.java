@@ -59,6 +59,9 @@ public final class Decrees {
 		ALL.add(new Decree("О перестановке кадров", "Кадры решают всё! Товарищи меняются местами.", true, Decrees::reshuffle));
 		ALL.add(new Decree("О борьбе с бюрократией", "Каждому выдана " + Goods.FORM_NAME + ". Сдайте её Генсеку за 5 минут, иначе — выговор!", false, Decrees::bureaucracy));
 		ALL.add(new Decree("О кукурузе", "Кукуруза — царица полей! Каждому положена кукуруза.", false, Decrees::corn));
+		ALL.add(new Decree("Об амнистии", "В честь годовщины всего подряд: заключённые освобождены, выговоры сняты!", false, Decrees::amnesty));
+		ALL.add(new Decree("О выборах", "Всенародные выборы! Кандидат один, но выбор есть всегда: голосовать «за» или голосовать «за».", false, Decrees::elections));
+		ALL.add(new Decree("О дне милиции", "День милиции! Милиционеры патрулируют город и выписывают премии... или штрафы.", false, Decrees::policeDay));
 		ALL.add(new Decree("О соцсоревновании", "Соцсоревнование: 3 минуты, кто убьёт больше мобов — тот Герой!", false, Decrees::competition));
 	}
 
@@ -95,7 +98,7 @@ public final class Decrees {
 			if (forms == 1) {
 				for (UUID id : pendingForms) {
 					ServerPlayer p = s.getPlayerList().getPlayer(id);
-					if (p != null) Discipline.vygovor(p, "не сдана " + Goods.FORM_NAME + " (бюрократия не дремлет)");
+					if (p != null) Justice.vygovor(p, "не сдана " + Goods.FORM_NAME + " (бюрократия не дремлет)");
 				}
 				pendingForms.clear();
 			}
@@ -121,9 +124,7 @@ public final class Decrees {
 		}
 		ServerPlayer winner = best == null ? null : s.getPlayerList().getPlayer(best);
 		if (winner != null) {
-			Msg.broadcast(s, Msg.party().append(Msg.t(title + " окончен! ", ChatFormatting.GOLD, ChatFormatting.BOLD))
-					.append(Msg.t(winner.getName().getString(), ChatFormatting.WHITE, ChatFormatting.BOLD))
-					.append(Msg.t(" " + what + " (" + bestScore + ") и получает +" + prize + " трудодней!", ChatFormatting.GOLD)));
+			Plaque.all(s, Plaque.Kind.GOOD, title + " окончен! " + winner.getName().getString() + " " + what + " (" + bestScore + ") и получает +" + prize + " трудодней!", 10);
 			Ranks.addTrud(winner, prize, "победа: " + title.toLowerCase());
 			Msg.fireworksAround(winner, 3);
 		} else {
@@ -149,6 +150,7 @@ public final class Decrees {
 		Decree d = ALL.get(index);
 		int no = Data.add("decreeNo", 1);
 		Msg.titleAll(s, Msg.t("УКАЗ ПАРТИИ №" + no, ChatFormatting.RED, ChatFormatting.BOLD), Msg.t(d.name(), ChatFormatting.GOLD));
+		Plaque.all(s, Plaque.Kind.DECREE, "УКАЗ №" + no + " «" + d.name() + "»: " + d.desc(), 12);
 		Msg.broadcast(s, Msg.party().append(Msg.t("УКАЗ №" + no + " «" + d.name() + "»: ", ChatFormatting.RED, ChatFormatting.BOLD))
 				.append(Msg.t(d.desc(), ChatFormatting.YELLOW)));
 		Msg.soundAll(s, SoundEvents.BELL_BLOCK, 1f, 0.5f);
@@ -295,7 +297,7 @@ public final class Decrees {
 		List<ServerPlayer> ps = players(s);
 		if (ps.isEmpty()) return;
 		ServerPlayer p = ps.get(CommunismMod.RNG.nextInt(ps.size()));
-		Msg.broadcast(s, Msg.party().append(Msg.t("Товарищ " + p.getName().getString() + " назначен космонавтом! Поехали!", ChatFormatting.AQUA, ChatFormatting.BOLD)));
+		Plaque.all(s, Plaque.Kind.DECREE, "Товарищ " + p.getName().getString() + " назначен космонавтом! Поехали!", 8);
 		p.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 100, 2));
 		Scheduler.later(100, () -> p.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 600, 0)));
 		Msg.sound(p, SoundEvents.FIREWORK_ROCKET_LAUNCH, 1f, 0.6f);
@@ -343,7 +345,7 @@ public final class Decrees {
 		ServerPlayer p = ps.get(CommunismMod.RNG.nextInt(ps.size()));
 		BlockPos pos = surfaceNear(p, 9, 12);
 		Structures.miniHouse(Msg.level(p), pos);
-		Msg.broadcast(s, Msg.party().append(Msg.t("Товарищ " + p.getName().getString() + " получил квартиру на " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + "! Новоселье!", ChatFormatting.GREEN)));
+		Plaque.all(s, Plaque.Kind.GOOD, "Товарищ " + p.getName().getString() + " получил квартиру на " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + "! Новоселье!", 10);
 		Msg.give(p, Goods.apartmentOrder());
 	}
 
@@ -375,9 +377,10 @@ public final class Decrees {
 		Map<UUID, ServerLevel> backLevel = new HashMap<>();
 		int i = 0;
 		for (ServerPlayer p : players(s)) {
+			if (Justice.inCustody(p)) continue;
 			back.put(p.getUUID(), p.position());
 			backLevel.put(p.getUUID(), Msg.level(p));
-			Discipline.teleport(p, ow, Data.px() - 3 + (i++) * 1.5, Data.py(), Data.pz() - 8.5);
+			Justice.teleport(p, ow, Data.px() - 3 + (i++) * 1.5, Data.py(), Data.pz() - 8.5, 0f);
 			Ranks.addTrud(p, 3, "явка на партсобрание");
 		}
 		String[] speech = {
@@ -389,9 +392,9 @@ public final class Decrees {
 		Scheduler.later(800, () -> {
 			for (Map.Entry<UUID, Vec3> e : back.entrySet()) {
 				ServerPlayer p = s.getPlayerList().getPlayer(e.getKey());
-				if (p == null || Discipline.isExiled(p)) continue;
+				if (p == null || Justice.inCustody(p)) continue;
 				Vec3 v = e.getValue();
-				Discipline.teleport(p, backLevel.get(e.getKey()), v.x, v.y, v.z);
+				Justice.teleport(p, backLevel.get(e.getKey()), v.x, v.y, v.z, p.getYRot());
 				Msg.info(p, "Собрание окончено. Вас вернули на рабочее место.");
 			}
 		});
@@ -409,7 +412,7 @@ public final class Decrees {
 		for (int i = 0; i < ps.size(); i++) {
 			int j = (i + 1) % ps.size();
 			Vec3 v = pos.get(j);
-			Discipline.teleport(ps.get(i), lv.get(j), v.x, v.y, v.z);
+			Justice.teleport(ps.get(i), lv.get(j), v.x, v.y, v.z, ps.get(i).getYRot());
 			Msg.info(ps.get(i), "Вас перевели на должность товарища " + ps.get(j).getName().getString() + ". Работайте!");
 		}
 	}
@@ -435,6 +438,34 @@ public final class Decrees {
 			Msg.say(p, Npcs.DICTATOR, "Эта форма уже недействительна... или поддельная? Ладно, приму. Но я запомнил.");
 		}
 		return true;
+	}
+
+	private static void amnesty(MinecraftServer s) {
+		int n = Justice.pardonAll(s, "Амнистия!");
+		for (ServerPlayer p : players(s)) Data.set(p, Data.vyg, 0);
+		Plaque.all(s, Plaque.Kind.GOOD, "Освобождено заключённых: " + n + ". Все выговоры сняты. Начните нарушать с чистого листа!", 10);
+	}
+
+	private static void elections(MinecraftServer s) {
+		String cand = Leader.retired() && Leader.current(s) != null ? Leader.current(s).getName().getString() : Leader.VOZHD;
+		Scheduler.later(100, () -> {
+			int pct = 99 + CommunismMod.RNG.nextInt(2);
+			Msg.titleAll(s, Msg.t("ИТОГИ ВЫБОРОВ", ChatFormatting.RED, ChatFormatting.BOLD), Msg.t(cand + ": " + pct + "," + CommunismMod.RNG.nextInt(10) + "% голосов", ChatFormatting.GOLD));
+			Plaque.all(s, Plaque.Kind.DECREE, "Явка — 146%. Победил " + cand + ". Против — 0 человек (их ищут).", 10);
+			for (ServerPlayer p : players(s)) Ranks.addTrud(p, 2, "явка на выборы");
+		});
+	}
+
+	private static void policeDay(MinecraftServer s) {
+		for (ServerPlayer p : players(s)) {
+			if (CommunismMod.RNG.nextBoolean()) {
+				Ranks.addTrud(p, 5, "премия ко Дню милиции");
+			} else {
+				int fine = Math.min(Ranks.trud(p), 3);
+				Ranks.spend(p, fine);
+				Plaque.show(p, Plaque.Kind.POLICE, "Милиция выписала штраф: −" + fine + " трудодня. За что? За всё хорошее!", 7);
+			}
+		}
 	}
 
 	private static void corn(MinecraftServer s) {

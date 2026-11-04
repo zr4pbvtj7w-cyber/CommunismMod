@@ -14,7 +14,7 @@ import net.minecraft.world.scores.criteria.ObjectiveCriteria;
  * Глобальные значения лежат у «фейковых игроков» вида #stage в цели cm_data.
  */
 public final class Data {
-	public static Objective data, trud, stazh, vyg, qtype, qprog, qgoal, joined;
+	public static Objective data, trud, stazh, vyg, qtype, qprog, qgoal, qmask, qbase, joined, debt, debtT, loans, leader;
 	private static MinecraftServer server;
 
 	static void init(MinecraftServer s) {
@@ -27,6 +27,12 @@ public final class Data {
 		qprog = obj("cm_qprog", "Прогресс задания");
 		qgoal = obj("cm_qgoal", "Цель задания");
 		joined = obj("cm_joined", "Партбилет");
+		qmask = obj("cm_qmask", "Задание: отметки");
+		qbase = obj("cm_qbase", "Задание: база");
+		debt = obj("cm_debt", "Долг МФО");
+		debtT = obj("cm_debtt", "Срок долга");
+		loans = obj("cm_loans", "Займов взято");
+		leader = obj("cm_leader", "Генсек");
 		Scoreboard sb = s.getScoreboard();
 		if (sb.getDisplayObjective(DisplaySlot.SIDEBAR) == null) {
 			sb.setDisplayObjective(DisplaySlot.SIDEBAR, trud);

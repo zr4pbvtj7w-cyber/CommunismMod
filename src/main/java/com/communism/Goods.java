@@ -50,6 +50,10 @@ public final class Goods {
 				"Докторская. Почти.", "Очередь отстояна честно.");
 	}
 
+	public static boolean isSausage(ItemStack s) {
+		return s.is(Items.COOKED_PORKCHOP) && "Колбаса по талону".equals(nameOf(s));
+	}
+
 	public static ItemStack bread(int n) {
 		return named(Items.BREAD, n, "Батон Нарезной", ChatFormatting.YELLOW, "ГОСТ соблюдён.");
 	}

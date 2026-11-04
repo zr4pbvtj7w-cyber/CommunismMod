@@ -60,7 +60,7 @@ public final class Plan {
 					new Req("Изумруды (изъятые у кулаков)", s -> s.is(Items.EMERALD), 12, 15)),
 	};
 
-	private static ServerBossEvent bar;
+	private static ServerBossEvent bar, lawBar;
 
 	static void init() {
 		if (Data.get("factor") == 0) startStage(0, 1);
@@ -123,7 +123,8 @@ public final class Plan {
 		inv.setChanged();
 		int reward = Math.max(1, tenths / 10);
 		Ranks.addTrud(p, reward, "сдача плана");
-		Msg.say(p, Npcs.DICTATOR, phrase() + " Принято " + items + " ед. продукции" + (mult > 1 ? " (×2 по ударному!)" : "") + ".");
+		Plaque.show(p, Plaque.Kind.GOOD, phrase() + " Принято " + items + " ед. продукции" + (mult > 1 ? " (×2 по ударному!)" : "") + ". План: " + Math.round(progress() * 100) + "%", 6);
+		Quests.onContribute(p, items);
 		Msg.sound(p, SoundEvents.VILLAGER_YES, 1f, 0.8f);
 		if (complete()) completeStage(CommunismMod.server);
 		return true;
@@ -145,7 +146,7 @@ public final class Plan {
 	public static void completeStage(MinecraftServer srv) {
 		int s = stage();
 		Stage st = STAGES[s];
-		Msg.broadcast(srv, Msg.party().append(Msg.t(st.year() + " «" + st.title() + "» ВЫПОЛНЕН ДОСРОЧНО!", ChatFormatting.GOLD, ChatFormatting.BOLD)));
+		Plaque.all(srv, Plaque.Kind.GOOD, st.year() + " «" + st.title() + "» ВЫПОЛНЕН ДОСРОЧНО! Каждому +" + st.reward() + " трудодней.", 10);
 		Msg.titleAll(srv, Msg.t("ПЛАН ВЫПОЛНЕН!", ChatFormatting.RED, ChatFormatting.BOLD),
 				Msg.t(st.year() + ": " + st.title() + " — каждому +" + st.reward() + " трудодней", ChatFormatting.GOLD));
 		Msg.soundAll(srv, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
@@ -158,7 +159,7 @@ public final class Plan {
 			Data.set("stage", BOSS);
 			Scheduler.later(80, () -> {
 				Msg.sayAll(srv, Npcs.DICTATOR, "Товарищи! Пятилетка выполнена за рекордные сроки! Но... разведка докладывает: МИСТЕР КАПИТАЛ узнал о наших успехах и летит сюда на золотом вертолёте!");
-				Msg.sayAll(srv, Npcs.DICTATOR, "Когда будете готовы — подойдите ко мне на Красной площади. Дадим последний и решительный бой!");
+				Msg.sayAll(srv, Npcs.DICTATOR, "Когда будете готовы — подойдите ко мне к Мавзолею. Дадим последний и решительный бой!");
 				Msg.titleAll(srv, Msg.t("ФИНАЛЬНАЯ БИТВА", ChatFormatting.DARK_RED, ChatFormatting.BOLD),
 						Msg.t("Поговорите с Генсеком, когда будете готовы", ChatFormatting.GOLD));
 			});
@@ -167,7 +168,7 @@ public final class Plan {
 			Stage next = STAGES[s + 1];
 			Scheduler.later(80, () -> {
 				Msg.sayAll(srv, Npcs.DICTATOR, "Начинаем " + next.year() + ": «" + next.title() + "»! " + next.intro());
-				Msg.broadcast(srv, statusText());
+				Plaque.all(srv, Plaque.Kind.DECREE, "Начат " + next.year() + ": «" + next.title() + "». Сдавайте ресурсы Председателю Госплана у Мавзолея.", 10);
 			});
 		}
 	}
@@ -176,7 +177,7 @@ public final class Plan {
 		int s = stage();
 		MutableComponent c = Msg.party();
 		if (s >= VICTORY) return c.append(Msg.t("Коммунизм построен! Каждому — по потребностям.", ChatFormatting.GOLD, ChatFormatting.BOLD));
-		if (s == BOSS) return c.append(Msg.t("Пятилетка выполнена. Осталось победить Мистера Капитала! Поговорите с Генсеком.", ChatFormatting.GOLD));
+		if (s == BOSS) return c.append(Msg.t("Пятилетка выполнена. Осталось победить Мистера Капитала! Поговорите с Председателем Госплана.", ChatFormatting.GOLD));
 		Stage st = STAGES[s];
 		c.append(Msg.t("Пятилетка — " + st.year() + ": «" + st.title() + "»", ChatFormatting.GOLD, ChatFormatting.BOLD));
 		if (doubleActive()) c.append(Msg.t("  [×2 УДАРНЫЙ РЕЖИМ]", ChatFormatting.RED, ChatFormatting.BOLD));
@@ -188,7 +189,7 @@ public final class Plan {
 					.append(Msg.t(st.reqs()[i].name() + ": ", ChatFormatting.WHITE))
 					.append(Msg.t(pr + "/" + g, done ? ChatFormatting.GREEN : ChatFormatting.YELLOW));
 		}
-		c.append(Msg.t("\n  Сдавайте ресурсы Генсеку Усачу (ПКМ с предметом, Shift+ПКМ — сдать всё).", ChatFormatting.GRAY));
+		c.append(Msg.t("\n  Сдавайте ресурсы Председателю Госплана у Мавзолея.", ChatFormatting.GRAY));
 		return c;
 	}
 
@@ -224,15 +225,22 @@ public final class Plan {
 			bar.setColor(BossEvent.BossBarColor.RED);
 		}
 		bar.setName(Component.literal(name));
+		if (lawBar == null) lawBar = new ServerBossEvent(Component.literal("⚖"), BossEvent.BossBarColor.WHITE, BossEvent.BossBarOverlay.PROGRESS);
+		for (ServerPlayer p : srv.getPlayerList().getPlayers()) lawBar.addPlayer(p);
+		lawBar.setName(Component.literal("⚖ Законы: " + Laws.shortList() + "  |  новый через " + Msg.time(Math.max(0, Data.get("lawTimer")))));
+		lawBar.setProgress(Math.max(0f, Math.min(1f, Data.get("lawTimer") / (float) Laws.PERIOD)));
 		bar.setProgress(Math.max(0f, Math.min(1f, s >= BOSS ? 1f : progress())));
 	}
 
 	static void removePlayer(ServerPlayer p) {
 		if (bar != null) bar.removePlayer(p);
+		if (lawBar != null) lawBar.removePlayer(p);
 	}
 
 	static void shutdown() {
 		if (bar != null) bar.removeAllPlayers();
+		if (lawBar != null) lawBar.removeAllPlayers();
 		bar = null;
+		lawBar = null;
 	}
 }

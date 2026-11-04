@@ -40,7 +40,9 @@ public class CommunismMod implements ModInitializer {
 			Boss.shutdown();
 			Scheduler.clear();
 			Decrees.reset();
-			Discipline.reset();
+			Justice.reset();
+			Laws.reset();
+			Plaque.reset();
 			Npcs.reset();
 			Events.reset();
 			server = null;
@@ -50,7 +52,7 @@ public class CommunismMod implements ModInitializer {
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, s) -> Events.onLeave(handler.getPlayer()));
 		Events.register();
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> KommCommand.register(dispatcher));
-		LOG.info("☭ Мод про Коммунизм загружен. Пролетарии всех модов, соединяйтесь!");
+		LOG.info("☭ Мод про Коммунизм загружен. Версия 2.0. Пролетарии всех модов, соединяйтесь!");
 	}
 
 	private static void onTick(MinecraftServer s) {
@@ -58,6 +60,8 @@ public class CommunismMod implements ModInitializer {
 		tick++;
 		try {
 			Scheduler.tick();
+			Plaque.tick();
+			Justice.tick(s);
 			Boss.tick(s);
 			if (tick % 20 == 0) secondTick(s);
 		} catch (Exception e) {
@@ -71,7 +75,9 @@ public class CommunismMod implements ModInitializer {
 		if (!anyone) return;
 		Decrees.secondTick(s);
 		Laws.secondTick(s);
-		Discipline.secondTick(s);
+		Justice.secondTick(s);
+		Loans.secondTick(s);
 		Npcs.secondTick(s);
+		Events.secondTick(s);
 	}
 }

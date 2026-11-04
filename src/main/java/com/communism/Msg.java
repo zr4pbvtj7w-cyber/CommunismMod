@@ -37,22 +37,24 @@ public final class Msg {
 		s.getPlayerList().broadcastSystemMessage(c, false);
 	}
 
+	/** Сообщение всем — плашкой. */
 	public static void broadcast(MinecraftServer s, String text, ChatFormatting color) {
-		broadcast(s, party().append(t(text, color)));
+		Plaque.all(s, Plaque.Kind.INFO, text, 7);
 	}
 
-	/** Реплика NPC в чат одному игроку. */
+	/** Реплика NPC одному игроку — плашкой. */
 	public static void say(ServerPlayer p, String npc, String text) {
-		p.sendSystemMessage(t("[" + npc + "] ", ChatFormatting.RED, ChatFormatting.BOLD).append(t(text, ChatFormatting.WHITE)));
+		Plaque.show(p, Plaque.Kind.INFO, npc + ": «" + text + "»", 7);
 	}
 
-	/** Реплика NPC всем. */
+	/** Реплика NPC всем — плашкой (и копия в чат, чтобы можно было перечитать). */
 	public static void sayAll(MinecraftServer s, String npc, String text) {
+		Plaque.all(s, Plaque.Kind.DECREE, npc + ": «" + text + "»", 10);
 		broadcast(s, t("[" + npc + "] ", ChatFormatting.RED, ChatFormatting.BOLD).append(t(text, ChatFormatting.YELLOW)));
 	}
 
 	public static void info(ServerPlayer p, String text) {
-		p.sendSystemMessage(party().append(t(text, ChatFormatting.GOLD)));
+		Plaque.show(p, Plaque.Kind.INFO, text, 6);
 	}
 
 	public static void title(ServerPlayer p, Component title, Component sub) {
